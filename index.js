@@ -21,18 +21,35 @@ function authConnection(req, res) {
 	return true;
 }
 
-app.post("/getCategory", async (req, res) => {
+var queue = [];
+
+async function runQueue() {
+	if (queue.length == 0) return;
+	await queue[0]();
+	queue.shift();
+	runQueue();
+}
+
+async function addToQueue(asyncFunction) {
+	queue.push(asyncFunction);
+	if (queue.length == 1) await runQueue();
+}
+
+app.post("/getCategory", (req, res) => {
 	if (!authConnection(req, res)) return;
-	const { message, sender } = req.body;
-	const apiSession = await ApiSession.getInstance();
-	const category = await apiSession.getCategory(sender + " : " + message);
-	res.json({ category });
+	addToQueue(async () => {
+		const message = req.body.message;
+		const category = await ApiSession.getCategory(message);
+		res.json({ category });
+	});
 });
 
 app.get("/refresh", async (req, res) => {
 	if (!authConnection(req, res)) return;
-	await ApiSession.refresh();
-	res.json({ message: "refreshed" });
+	addToQueue(async () => {
+		await ApiSession.refresh();
+		res.json({ message: "Refreshed" });
+	});
 });
 
 app.listen(3000, () => {
