@@ -14,7 +14,7 @@ const model = genAI.getGenerativeModel({
 });
 
 const generationConfig = {
-	temperature: 0.5,
+	temperature: 0.75,
 	topP: 0.95,
 	topK: 64,
 	maxOutputTokens: 8192,
@@ -60,20 +60,20 @@ class ApiSession {
 				{
 					role: "user",
 					parts: [
-						{ text: "你是一個Minecraft生存伺服器的訊息分類機器人\n有點像API \n我會輸入一串訊息，你告訴我要送到哪個分類\n總共有4種分類\n任務(Task)、交易(Trade)、公共(Global)\n\n只回覆我分類對應的英文標籤就好，其他不要回覆\n\n範例：\n\"收一盒金磚四萬七 能到喜羊羊商店單賣 右手邊的收購商店\" -> Trade\n\"你居然現在才睡\" -> Global\n\"收死亡腦珊瑚（1000收\" -> Trade\n\"掛這麼久\" -> Global\n\"限時販售嗅探獸1顆200元，限量6顆要購買得[/spawn]\" -> Trade\n\"我重設定一下\" -> Global\n\"把粉末變成混泥土，3000\" -> Task\n\"all done\" -> Global\n\"找人幫忙蓋通天小麥塔 30000\" -> Task\n\"i can still use it\" -> Global\n\"急找一位分解工 將骨頭分解成骨粉 分解1盒骨頭350元\" -> Task\n\"i can still use it\" -> Global\n\"徵整地工，薪水3萬\" -> Task\n\" 好欸藍圖終於更新1.21.1了\" -> Global\n\n只回覆我分類對應的英文標籤\n但要追蹤上下幾個訊息內的語意來判斷\nA:你有比較器嗎? \nB:要多少 <-- 這就不是交易訊息\n交易的話不要把玩家日常遊玩的訊息搞混了\n要想像玩家的日常遊玩行動\n有很明確是交易的再分類成Trade 例如有商業用詞(收、售)並且同時有量詞的組合(多少、32組、16盒)\n\n回覆我ok即開始" },
+						{ text: "**你是一個Minecraft生存伺服器的訊息分類機器人，像是一個API。我會給你一段訊息，你需要將其分類為以下四種之一：**\n\n- **Task**（任務）：訊息包含尋求幫助、協作、尋找工人或提供某種服務的內容。特徵包括“徵”、“找”這類詞語開頭，描述具體的工作或任務類型，或者是提出個人或團隊需要完成的挑戰和目標。\n- **Trade**（交易）：訊息明確涉及買賣、交換行為，通常包含商品名稱、數量、價格或交易條件等商業用語。交易訊息通常會提到“收”、“售”、“交易”、“價格”等明確的商業詞語，並伴有數量詞（如“多少”、“16盒”）。\n- **Global**（公共）：包含一般的伺服器聊天或非任務、非交易類型的日常對話。這些訊息通常不涉及具體的任務或交易，而是玩家之間的普通互動或閒聊。\n\n### 注意：\n\n- **利用上下文信息進行判斷**：某些訊息需要根據前後文來正確分類。例如，當玩家在多條訊息中進行對話時，要判斷是否存在真正的交易或任務。例如：\n  - **A: 你有比較器嗎?**\n  - **B: 要多少** —> 此處不應被分類為交易訊息，而更可能是日常交流（Global）。\n\n- **交易訊息的明顯標誌**：交易訊息通常包含明確的商業用語（如“收”、“售”）和數量詞的組合（如“多少”、“32組”、“16盒”）。如果訊息缺乏這些明確的特徵或用語，則可能不是交易訊息。在不確定時，應更傾向於分類為Global。\n\n- **任務訊息的典型特徵**：任務訊息通常包含“徵”、“找”等詞語開頭，並描述特定的工作或任務類型（如“剝樹皮工”、“挖沙工”）。此外，這類訊息可能會包含具體的數量、薪酬或完成條件等細節。如果訊息中包含這些特徵，應該歸類為Task。\n\n- **避免誤分類的情況**：對於像“我打算寫一些新手教程書，有什麽辦法複製書嗎？”這類訊息，應檢查是否有具體的交易或交換意圖。如果訊息是詢問如何完成某個遊戲功能或尋求幫助而非涉及交換或買賣，則應歸類為Global，而不是Trade。\n\n回答ok來開始" },
 					],
 				},
 				{
 					role: "model",
 					parts: [
-						{ text: "ok \n" },
+						{ text: "ok\n" },
 					],
-				},
+				}
 			],
 		});
 	}
 
-	/** 
+	/**
 	 * @param {string} message
 	 * @returns {Promise<String>}
 	 */
@@ -82,9 +82,10 @@ class ApiSession {
 		if (result.response.text().includes("Task")) return MessageCategory.TASK;
 		if (result.response.text().includes("Trade")) return MessageCategory.TRADE;
 		if (result.response.text().includes("Global")) return MessageCategory.GLOBAL;
+		if (result.response.text().replaceAll("\n", "").replaceAll(" ", "").length > 0) return MessageCategory.UNKNOWN;
 		return MessageCategory.UNKNOWN;
 	}
-	
+
 	/** @returns {Promise<ApiSession>} */
 	static async getInstance() {
 		if (!ApiSession.instance) {
