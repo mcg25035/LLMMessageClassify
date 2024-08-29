@@ -37,21 +37,22 @@ async function addToQueue(asyncFunction) {
 
 app.post("/getCategory", (req, res) => {
 	if (!authConnection(req, res)) return;
-	addToQueue(async () => {
+	addToQueue(async function () {
 		const message = req.body.message;
-		const category = await ApiSession.getCategory(message);
+		const instance = await ApiSession.getInstance();
+		const category = await instance.getCategory(message);
 		res.json({ category });
 	});
 });
 
 app.get("/refresh", async (req, res) => {
 	if (!authConnection(req, res)) return;
-	addToQueue(async () => {
+	addToQueue(async function () {
 		await ApiSession.refresh();
 		res.json({ message: "Refreshed" });
 	});
 });
 
-app.listen(3000, () => {
-	console.log("Server is running on http://localhost:3000");
+app.listen(3087, () => {
+	console.log("Server is running on http://localhost:3087");
 });
