@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.17.1",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "groq-sdk": "^0.7.0"
   }
 }

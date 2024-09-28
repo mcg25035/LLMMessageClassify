@@ -38,9 +38,8 @@ async function addToQueue(asyncFunction) {
 app.post("/getCategory", (req, res) => {
 	if (!authConnection(req, res)) return;
 	addToQueue(async function () {
-		const message = req.body.message;
 		const instance = await ApiSession.getInstance();
-		const category = await instance.getCategory(message);
+		const category = await instance.getCategory(req.body.sender, req.body.message);
 		res.json({ category });
 	});
 });
