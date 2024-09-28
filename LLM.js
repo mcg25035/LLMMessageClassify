@@ -145,6 +145,25 @@ class ApiSession {
 			
 				return messageCategoryIdendifier[idendifier];
 			}
+			await fetch(discordWebhook, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					"content": message,
+					"tts": false,
+					"embeds": [{
+						"id": 652627557,
+						"description": `分類失敗，大語言模型回覆：${responseMessage}`,
+						"color": categoryColor[MessageCategory.UNKNOWN],
+						"fields": []
+					}],
+					"components": [],
+					"actions": {},
+					"username": sender
+				})
+			});
 		}
 		ApiSession.refresh();
 		return MessageCategory.UNKNOWN;
