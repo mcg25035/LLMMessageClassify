@@ -48,10 +48,15 @@ const categoryColor = {
 	[MessageCategory.UNKNOWN]: 0x000000
 }
 
+/**
+ * @typedef {import('groq-sdk/resources/chat/completions.mjs').ChatCompletionCreateParamsNonStreaming} ChatCompletionCreateParamsNonStreaming
+ * @typedef {import('groq-sdk/resources/chat/completions.mjs').ChatCompletion} ChatCompletion
+ */
+
 class ApiSession {
 	/** @type {ApiSession} */
 	static instance;
-	/** @type {import('groq-sdk/resources/chat/completions.mjs').ChatCompletionCreateParamsNonStreaming} */
+	/** @type {ChatCompletionCreateParamsNonStreaming} */
 	llmParam = {
 		"messages": [
 			{
@@ -79,8 +84,8 @@ class ApiSession {
 	}
 
 	/**
-	 * @param {import('groq-sdk/resources/chat/completions.mjs').ChatCompletionCreateParamsNonStreaming} llmParam 
-	 * @returns {Promise<import('groq-sdk/resources/chat/completions.mjs').ChatCompletion>}
+	 * @param {ChatCompletionCreateParamsNonStreaming} llmParam 
+	 * @returns {Promise<ChatCompletion>}
 	 */
 	async createCompletionsUntilSuccess(llmParam){
 		var response;
@@ -140,7 +145,6 @@ class ApiSession {
 
 		for (let i = 0; i < maxRetries; i++) {
 			var response = await this.createCompletionsUntilSuccess(this.llmParam);
-			
 			const responseMessage = response.choices[0].message.content;
 
 			for (const idendifier in messageCategoryIdendifier) {
@@ -160,7 +164,6 @@ class ApiSession {
 		}
 		ApiSession.refresh();
 		return MessageCategory.UNKNOWN;
-
 	}
 
 	/** @returns {Promise<ApiSession>} */
