@@ -48,22 +48,10 @@ const categoryColor = {
 	[MessageCategory.UNKNOWN]: 0x000000
 }
 
-
-/**
- * @typedef {Object} ChatCompletionCreateParamsNonStreamingObject
- * @property {Array<{role: string, content: string}>} messages
- * @property {string} model
- * @property {number} temperature
- * @property {number} max_tokens
- * @property {number} top_p
- * @property {boolean} stream
- * @property {string} stop
- */
-
 class ApiSession {
 	/** @type {ApiSession} */
 	static instance;
-	/** @type {ChatCompletionCreateParamsNonStreamingObject} */
+	/** @type {import('groq-sdk/resources/chat/completions.mjs').ChatCompletionCreateParamsNonStreaming} */
 	llmParam = {
 		"messages": [
 			{
@@ -83,6 +71,59 @@ class ApiSession {
 	constructor() {
 	}
 
+	switchAccount(){
+		if (apiKeyIndex == apiKeyIndexMax) apiKeyIndex = 0;
+		groq = new Groq({
+			apiKey: apiKey[++apiKeyIndex]
+		});
+	}
+
+	/**
+	 * @param {import('groq-sdk/resources/chat/completions.mjs').ChatCompletionCreateParamsNonStreaming} llmParam 
+	 * @returns {Promise<import('groq-sdk/resources/chat/completions.mjs').ChatCompletion>}
+	 */
+	async createCompletionsUntilSuccess(llmParam){
+		var response;
+		for (let i = 0; i < maxRetries; i++) {
+			try{
+				response = await groq.chat.completions.create(llmParam);
+				return response;
+			}
+			catch(e){
+				this.switchAccount();
+			}
+		}
+		throw new Error("Failed to create completions, max retries reached");
+	}
+
+	/**
+	 * @param {string} sender
+	 * @param {string} message
+	 * @param {string} category
+	 * @param {string} responseMessage
+	 */
+	async sendWebhook(sender, message, category, responseMessage){
+		var embedColor = categoryColor[category];
+
+		return await fetch(discordWebhook, {
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify({
+				"content": message,
+				"tts": false,
+				"embeds": [{
+					"id": 652627557,
+					"description": responseMessage,
+					"color": embedColor,
+					"fields": []
+				}],
+				"components": [],
+				"actions": {},
+				"username": sender
+			})
+		});		
+	}
+
 	/**
 	 * @param {string} sender
 	 * @param {string} message
@@ -98,17 +139,7 @@ class ApiSession {
 
 
 		for (let i = 0; i < maxRetries; i++) {
-			var response;
-			try{
-				response = await groq.chat.completions.create(this.llmParam);
-			}
-			catch(e){
-				if (apiKeyIndex == apiKeyIndexMax) apiKeyIndex = 0;
-				groq = new Groq({
-					apiKey: apiKey[++apiKeyIndex]
-				});
-				response = await groq.chat.completions.create(this.llmParam);
-			}
+			var response = await this.createCompletionsUntilSuccess(this.llmParam);
 			
 			const responseMessage = response.choices[0].message.content;
 
@@ -120,50 +151,12 @@ class ApiSession {
 					content: responseMessage
 				});
 
-				var embedColor = categoryColor[messageCategoryIdendifier[idendifier]];
-
-				await fetch(discordWebhook, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						"content": message,
-						"tts": false,
-						"embeds": [{
-							"id": 652627557,
-							"description": responseMessage,
-							"color": embedColor,
-							"fields": []
-						}],
-						"components": [],
-						"actions": {},
-						"username": sender
-					})
-				});
-
-			
+				await this.sendWebhook(sender, message, messageCategoryIdendifier[idendifier], responseMessage);
 				return messageCategoryIdendifier[idendifier];
 			}
-			await fetch(discordWebhook, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					"content": message,
-					"tts": false,
-					"embeds": [{
-						"id": 652627557,
-						"description": `分類失敗，大語言模型回覆：${responseMessage}`,
-						"color": categoryColor[MessageCategory.UNKNOWN],
-						"fields": []
-					}],
-					"components": [],
-					"actions": {},
-					"username": sender
-				})
-			});
+
+			await this.sendWebhook(sender, message, MessageCategory.UNKNOWN, `分類失敗，大語言模型回覆：${responseMessage}`);
+			this.switchAccount();
 		}
 		ApiSession.refresh();
 		return MessageCategory.UNKNOWN;
