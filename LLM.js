@@ -3,7 +3,8 @@ const dotenv = require("dotenv");
 
 const apiKey = dotenv.config().parsed.API_KEY.split(" ");
 const discordWebhook = dotenv.config().parsed.DISCORD_WEBHOOK;
-const maxRetries = 3;
+const maxRetriesMessage = 3;
+const maxRetriesSwitch = 6;
 
 var apiKeyIndex = 0; 
 var apiKeyIndexMax = apiKey.length - 1; 
@@ -89,7 +90,7 @@ class ApiSession {
 	 */
 	async createCompletionsUntilSuccess(llmParam){
 		var response;
-		for (let i = 0; i < maxRetries; i++) {
+		for (let i = 0; i < maxRetriesSwitch; i++) {
 			try{
 				response = await groq.chat.completions.create(llmParam);
 				return response;
@@ -143,7 +144,7 @@ class ApiSession {
 		});
 
 
-		for (let i = 0; i < maxRetries; i++) {
+		for (let i = 0; i < maxRetriesMessage; i++) {
 			var response = await this.createCompletionsUntilSuccess(this.llmParam);
 			const responseMessage = response.choices[0].message.content;
 
