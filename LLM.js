@@ -7,7 +7,7 @@ const maxRetriesMessage = 3;
 const maxRetriesSwitch = 6;
 
 var apiKeyIndex = 0; 
-var apiKeyIndexMax = apiKey.length - 1; 
+var apiKeyIndexMax = apiKey.length; 
 
 /** @type {Groq.Groq} */
 var groq = new Groq({
@@ -78,10 +78,13 @@ class ApiSession {
 	}
 
 	switchAccount(){
+		apiKeyIndex++;
 		if (apiKeyIndex == apiKeyIndexMax) apiKeyIndex = 0;
+
 		groq = new Groq({
-			apiKey: apiKey[++apiKeyIndex]
+			apiKey: apiKey[apiKeyIndex]
 		});
+		
 	}
 
 	/**
@@ -157,6 +160,7 @@ class ApiSession {
 				});
 
 				await this.sendWebhook(sender, message, messageCategoryIdendifier[idendifier], responseMessage);
+				this.switchAccount();
 				return messageCategoryIdendifier[idendifier];
 			}
 
